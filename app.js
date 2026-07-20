@@ -105,7 +105,7 @@
       const skills = [...new Set(qs.map(q => q.skill))].sort((x, y) => x.localeCompare(y, undefined, { numeric: true }));
       return `<button class="category-card" data-app="${a}">
         <div class="cat-head"><span class="cat-badge">${a}</span><span class="cat-title">${esc(APP[a])}</span></div>
-        <div class="cat-count">${qs.length} questions · ${skills.length} skill areas</div>
+        <div class="cat-count"><strong style="color:var(--text)">${done}</strong> / ${qs.length} covered · ${skills.length} skills</div>
         <div class="cat-progress-track"><div class="cat-progress-fill" style="width:${qs.length ? done / qs.length * 100 : 0}%"></div></div>
         <div class="cat-skill-list">${skills.slice(0, 6).map(s => `<span class="skill-pill">${s}</span>`).join("")}${skills.length > 6 ? `<span class="skill-pill">+${skills.length - 6}</span>` : ""}</div>
       </button>`;
@@ -124,7 +124,7 @@
       const done = qs.filter(q => state.seen.has(q.id)).length;
       return `<button class="category-card" data-skill="${s}">
         <div class="cat-head"><span class="cat-badge">${s}</span><span class="cat-title">${esc(SKILL[s] || s)}</span></div>
-        <div class="cat-count">${qs.length} questions · ${done} done</div>
+        <div class="cat-count"><strong style="color:var(--text)">${done}</strong> / ${qs.length} covered</div>
         <div class="cat-progress-track"><div class="cat-progress-fill" style="width:${qs.length ? done / qs.length * 100 : 0}%"></div></div>
       </button>`;
     }).join("");
@@ -135,10 +135,10 @@
         <div class="category-grid">${rows}</div>
       </div></div>`;
     el.querySelector("[data-back]").addEventListener("click", () => go("topics"));
-    el.querySelector("[data-appstart]").addEventListener("click", () => startQuiz(shuffle(questionsForApp(a)).map(q => q.id), `Appendix ${a}`));
+    el.querySelector("[data-appstart]").addEventListener("click", () => startQuiz(shuffle(questionsForApp(a)).map(q => q.id), `Appendix ${a}`, { study: true }));
     el.querySelectorAll("[data-skill]").forEach(b => b.addEventListener("click", () => {
       const s = b.dataset.skill;
-      startQuiz(shuffle(Q.filter(q => q.skill === s)).map(q => q.id), `${s} · ${SKILL[s] || s}`);
+      startQuiz(shuffle(Q.filter(q => q.skill === s)).map(q => q.id), `${s} · ${SKILL[s] || s}`, { study: true });
     }));
   };
 
@@ -178,7 +178,7 @@
     function poolSize() { return Q.filter(q => sel.has(q.skill[0])).length; }
     el.innerHTML = `<div class="screen"><button class="back-link" data-go="dashboard">← Dashboard</button>
       <div class="panel"><div class="section-header">⚙️ Custom Test</div>
-        <label style="font-size:14px;font-weight:600;color:var(--text-secondary)">Topics</label>
+        <label style="font-size:14px;font-weight:600;color:var(--text-2)">Topics</label>
         <div class="chip-row" id="chips">${APP_ORDER.map(a => `<button class="chip active" data-a="${a}">${a} · ${esc(APP[a])}</button>`).join("")}</div>
         <div class="control-row">
           <label for="count">Number of questions</label>
@@ -215,7 +215,7 @@
     if (!ids.length) return;
     opts = opts || {};
     if (examTimer) { clearInterval(examTimer); examTimer = null; }
-    quiz = { ids, label, i: 0, answers: {}, options: {}, defer: !!opts.defer,
+    quiz = { ids, label, i: 0, answers: {}, options: {}, defer: !!opts.defer, study: !!opts.study,
       deadline: opts.minutes ? Date.now() + opts.minutes * 60000 : 0 };
     ids.forEach(id => { const q = byId(id); quiz.options[id] = shuffle([q.answer, ...q.incorrect]); });
     if (quiz.deadline) examTimer = setInterval(tickTimer, 1000);
@@ -227,7 +227,7 @@
     const left = Math.max(0, quiz.deadline - Date.now());
     const m = Math.floor(left / 60000), s = Math.floor(left % 60000 / 1000);
     t.textContent = `⏱️ ${m}:${String(s).padStart(2, "0")}`;
-    if (left < 60000) t.style.color = "var(--feedback-incorrect)";
+    if (left < 60000) t.style.color = "var(--bad)";
     if (left <= 0) { clearInterval(examTimer); examTimer = null; finishQuiz(); }
   }
 
@@ -244,7 +244,7 @@
       <div class="panel">
         <div class="progress-bar"><div class="progress-fill" style="width:${(i + 1) / ids.length * 100}%"></div></div>
         <div class="progress-meta">
-          <span>${esc(quiz.label)}${defer ? ` · <span style="color:var(--text-accent)">${answeredCount}/${ids.length} answered</span>` : ""}</span>
+          <span>${esc(quiz.label)}${defer ? ` · <span style="color:var(--accent-text)">${answeredCount}/${ids.length} answered</span>` : ""}</span>
           <span>${quiz.deadline ? `<span id="examClock" style="font-weight:800">⏱️ …</span> · ` : ""}Question ${i + 1} / ${ids.length}</span>
         </div>
         <div class="question-header">
@@ -310,8 +310,11 @@
     const answered = ids.filter(id => quiz.answers[id] !== undefined);
     const score = answered.filter(id => quiz.answers[id] === byId(id).answer).length;
     updateStreak();
-    state.history.unshift({ date: new Date().toISOString(), score, total: ids.length, answered: answered.length, label });
-    state.history = state.history.slice(0, 50);
+    // Study-by-topic sessions track coverage only — they are not scored tests, so they don't go in test history.
+    if (!quiz.study) {
+      state.history.unshift({ date: new Date().toISOString(), score, total: ids.length, answered: answered.length, label });
+      state.history = state.history.slice(0, 50);
+    }
     persist();
     renderResults(score, ids);
   }
@@ -320,12 +323,14 @@
     const total = ids.length;
     const pct = Math.round(score / total * 100);
     const R = 74, C = 2 * Math.PI * R, off = C * (1 - pct / 100);
-    const verdict = pct >= 60 ? ["🎉 Pass (≥60%)", "var(--feedback-correct)"] : pct >= 50 ? ["📈 Just below — 60% needed", "var(--text-accent)"] : ["📚 Keep studying (60% to pass)", "var(--feedback-incorrect)"];
+    const verdict = quiz.study
+      ? [`${score} of ${total} correct · coverage updated`, "var(--accent-text)"]
+      : pct >= 60 ? ["Pass — 60% or above", "var(--good)"] : pct >= 50 ? ["Just below the 60% pass mark", "var(--accent-text)"] : ["Below pass mark — 60% needed", "var(--bad)"];
     el.innerHTML = `<div class="screen results-screen"><div class="panel">
-      <div class="section-header" style="justify-content:center">🏁 Test Complete — ${esc(quiz.label)}</div>
+      <div class="section-header" style="text-align:center">${quiz.study ? "Study session complete" : "Test complete"} — ${esc(quiz.label)}</div>
       <div class="score-circle">
         <svg width="180" height="180"><defs><linearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="var(--gradient-start)"/><stop offset="100%" stop-color="var(--gradient-end)"/></linearGradient></defs>
+          <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--accent)"/></linearGradient></defs>
           <circle class="score-circle-bg" cx="90" cy="90" r="${R}"/>
           <circle class="score-circle-progress" cx="90" cy="90" r="${R}" stroke-dasharray="${C}" stroke-dashoffset="${C}" id="ring"/>
         </svg>
@@ -333,8 +338,8 @@
       </div>
       <div class="score-verdict" style="color:${verdict[1]}">${verdict[0]}</div>
       <div class="results-breakdown">
-        <div class="rb-item"><div class="rb-value" style="color:var(--feedback-correct)">${score}</div><div class="rb-label">Correct</div></div>
-        <div class="rb-item"><div class="rb-value" style="color:var(--feedback-incorrect)">${total - score}</div><div class="rb-label">Incorrect</div></div>
+        <div class="rb-item"><div class="rb-value" style="color:var(--good)">${score}</div><div class="rb-label">Correct</div></div>
+        <div class="rb-item"><div class="rb-value" style="color:var(--bad)">${total - score}</div><div class="rb-label">Incorrect</div></div>
         <div class="rb-item"><div class="rb-value">${pct}%</div><div class="rb-label">Score</div></div>
       </div>
       <div class="navigation">
@@ -377,11 +382,11 @@
     });
     const rows = perApp.map(p => {
       const w = p.acc === null ? 0 : p.acc;
-      const col = p.acc === null ? "var(--track)" : p.acc >= 70 ? "var(--feedback-correct)" : p.acc >= 50 ? "var(--text-accent)" : "var(--feedback-incorrect)";
+      const col = p.acc === null ? "var(--track)" : p.acc >= 70 ? "var(--good)" : p.acc >= 50 ? "var(--accent-text)" : "var(--bad)";
       return `<div class="bar-row"><span>${p.a} · ${esc(APP[p.a])}</span><div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${col}"></div></div><span>${p.acc === null ? "—" : p.acc + "%"}</span></div>`;
     }).join("");
     const hist = state.history.slice(0, 10).map(h =>
-      `<div class="bar-row"><span>${new Date(h.date).toLocaleDateString()}</span><div class="bar-track"><div class="bar-fill" style="width:${h.score / h.total * 100}%;background:var(--action-primary)"></div></div><span>${Math.round(h.score / h.total * 100)}%</span></div>`).join("");
+      `<div class="bar-row"><span>${new Date(h.date).toLocaleDateString()}</span><div class="bar-track"><div class="bar-fill" style="width:${h.score / h.total * 100}%;background:var(--accent)"></div></div><span>${Math.round(h.score / h.total * 100)}%</span></div>`).join("");
     el.innerHTML = `<div class="screen"><button class="back-link" data-go="dashboard">← Dashboard</button>
       <div class="panel"><div class="section-header">🔥 Streak</div>
         <div class="streak-row">
