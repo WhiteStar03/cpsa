@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPSA Practice — CREST Practitioner Security Analyst</title>
+<meta name="description" content="Free CREST CPSA practice quiz. 3500+ questions mapped to the official syllabus (Appendices A–J). Study by topic, custom tests, progress tracking, dark mode.">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+</head>
+<body>
+<div class="container">
+  <header class="header-container">
+    <div class="brand">
+      <span class="brand-logo">🛡️</span>
+      <div>
+        <h1 class="brand-title">CPSA Practice</h1>
+        <p class="brand-sub">CREST Practitioner Security Analyst</p>
+      </div>
+    </div>
+    <button class="dark-mode-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle light/dark theme">
+      <span class="toggle-icon" id="themeIcon">🌙</span>
+    </button>
+  </header>
+
+  <main id="app"><!-- screens injected here --></main>
+
+  <footer class="site-footer">
+    <span>Unofficial study tool · questions mapped to CREST CPSA Technical Syllabus v2.5</span>
+    <button class="link-btn" id="resetProgress">Reset all progress</button>
+  </footer>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal">
+    <p id="modalText">Are you sure?</p>
+    <div class="modal-actions">
+      <button class="nav-button secondary" id="modalCancel">Stay</button>
+      <button class="nav-button danger" id="modalConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="questions.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

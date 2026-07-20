@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPSA Practice — CREST Practitioner Security Analyst</title>
+<meta name="description" content="Free CREST CPSA practice quiz. 3500+ questions mapped to the official syllabus (Appendices A–J). Study by topic, custom tests, progress tracking, dark mode.">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;🛡️&lt;/text&gt;&lt;/svg&gt;">
+</head>
+<body>
+<div class="container">
+  <header class="header-container">
+    <div class="brand">
+      <span class="brand-logo">🛡️</span>
+      <div>
+        <h1 class="brand-title">CPSA Practice</h1>
+        <p class="brand-sub">CREST Practitioner Security Analyst</p>
+      </div>
+    </div>
+    <button class="dark-mode-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle light/dark theme">
+      <span class="toggle-icon" id="themeIcon">🌙</span>
+    </button>
+  </header>
+
+  <main id="app">
+    <div class="screen">
+      <div class="panel">
+        <div class="section-header">📊 Progress Overview</div>
+        <div class="dashboard-stats-grid">
+          <div class="stat-card"><div class="stat-icon">📚</div><div class="stat-value">3773</div><div class="stat-label">Total Questions</div></div>
+          <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value">0</div><div class="stat-label">Attempted</div></div>
+          <div class="stat-card"><div class="stat-icon">🏁</div><div class="stat-value">0</div><div class="stat-label">Tests Done</div></div>
+          <div class="stat-card"><div class="stat-icon">🎯</div><div class="stat-value">0%</div><div class="stat-label">Avg Score</div></div>
+        </div>
+        <div class="cat-progress-track"><div class="cat-progress-fill" style="width:0%"></div></div>
+        <div class="progress-meta" style="margin-top:8px;margin-bottom:0"><span>Coverage</span><span>0 / 3773</span></div>
+      </div>
+      <div class="panel">
+        <div class="section-header">🚀 Study Actions</div>
+        <div class="dashboard-actions-grid">
+          <button class="action-card primary" data-go="topics"><span class="action-icon">📂</span><div class="action-content"><h3>Study by Topic</h3><p>Appendices A–J</p></div><span class="action-arrow">→</span></button>
+          <button class="action-card secondary" data-go="random"><span class="action-icon">🎲</span><div class="action-content"><h3>Random Test</h3><p>Mixed 25 questions</p></div><span class="action-arrow">→</span></button>
+          <button class="action-card tertiary" data-go="custom"><span class="action-icon">⚙️</span><div class="action-content"><h3>Custom Test</h3><p>Pick topics &amp; length</p></div><span class="action-arrow">→</span></button>
+          <button class="action-card stats" data-go="stats"><span class="action-icon">📈</span><div class="action-content"><h3>Statistics</h3><p>Streak, history, weak areas</p></div><span class="action-arrow">→</span></button>
+        </div>
+      </div>
+      
+    </div></main>
+
+  <footer class="site-footer">
+    <span>Unofficial study tool · questions mapped to CREST CPSA Technical Syllabus v2.5</span>
+    <button class="link-btn" id="resetProgress">Reset all progress</button>
+  </footer>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" hidden="">
+  <div class="modal">
+    <p id="modalText">Are you sure?</p>
+    <div class="modal-actions">
+      <button class="nav-button secondary" id="modalCancel">Stay</button>
+      <button class="nav-button danger" id="modalConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="questions.js"></script>
+<script src="app.js"></script>
+
+
+</body></html>
