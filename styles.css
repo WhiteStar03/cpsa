@@ -212,7 +212,11 @@ select:hover { border-color: var(--accent); }
 .option.disabled { cursor: default; }
 .explain-box { font-size: 13.5px; color: var(--text-2); background: var(--surface-2);
   border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px;
-  padding: 12px 15px; margin-bottom: 20px; }
+  padding: 12px 15px; margin-bottom: 20px; line-height: 1.6; }
+.explain-verdict { font-weight: 700; }
+.explain-verdict.ok { color: var(--good); }
+.explain-verdict.no { color: var(--bad); }
+.explain-why { display: block; margin-top: 6px; color: var(--text-2); }
 
 /* ===== buttons ===== */
 .navigation { display: flex; gap: 10px; flex-wrap: wrap; }
