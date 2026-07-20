@@ -270,7 +270,7 @@
         </div>
         <div class="navigation" style="margin-top:10px">
           ${defer && !lastQ ? `<button class="nav-button ghost" id="submitBtn">Submit exam now</button>` : ""}
-          <button class="nav-button ghost" id="quitBtn">Quit ${defer ? "exam" : "test"}</button>
+          <button class="nav-button ghost" id="quitBtn">${quiz.study ? "Exit to topics" : "Quit " + (defer ? "exam" : "test")}</button>
         </div>
       </div>
     </div>`;
@@ -297,11 +297,17 @@
     el.querySelector("#nextBtn").addEventListener("click", () => {
       if (quiz.i === ids.length - 1) finishQuiz(); else { quiz.i++; renderQuestion(); }
     });
-    el.querySelector("#quitBtn").addEventListener("click", () =>
-      confirmModal("Quit? Your answers so far are saved to progress but this run won't be scored.", () => {
+    el.querySelector("#quitBtn").addEventListener("click", () => {
+      if (quiz.study) {
+        // Study by Topic saves coverage as you go — nothing is lost, so just leave.
+        go("topics");
+        return;
+      }
+      confirmModal("Quit this test? Answered questions are saved to your progress, but this run won't be scored.", () => {
         if (examTimer) { clearInterval(examTimer); examTimer = null; }
         go("dashboard");
-      }));
+      });
+    });
   }
 
   function finishQuiz() {
