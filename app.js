@@ -461,14 +461,35 @@
     }).join("");
     const hist = state.history.slice(0, 10).map(h =>
       `<div class="bar-row"><span>${new Date(h.date).toLocaleDateString()}</span><div class="bar-track"><div class="bar-fill" style="width:${h.score / h.total * 100}%;background:var(--accent)"></div></div><span>${Math.round(h.score / h.total * 100)}%</span></div>`).join("");
+    // per-skill syllabus mastery (all 76 skill areas)
+    const skillIds = Object.keys(SKILL).sort((x, y) => x.localeCompare(y, undefined, { numeric: true }));
+    const skillsStarted = skillIds.filter(s => Q.some(q => q.skill === s && state.seen.has(q.id))).length;
+    const mastery = APP_ORDER.map(a => {
+      const rowsS = skillIds.filter(s => s[0] === a).map(s => {
+        const qs = Q.filter(q => q.skill === s);
+        const seen = qs.filter(q => state.seen.has(q.id));
+        const cov = qs.length ? Math.round(seen.length / qs.length * 100) : 0;
+        const acc = seen.length ? Math.round(seen.filter(q => state.correct.has(q.id)).length / seen.length * 100) : null;
+        const col = acc === null ? "var(--track)" : acc >= 70 ? "var(--good)" : acc >= 50 ? "var(--accent-text)" : "var(--bad)";
+        return `<div class="bar-row"><span title="${esc(SKILL[s])}">${s} · ${esc(SKILL[s])}</span><div class="bar-track"><div class="bar-fill" style="width:${cov}%;background:${col}"></div></div><span>${seen.length}/${qs.length}${acc === null ? "" : " · " + acc + "%"}</span></div>`;
+      }).join("");
+      return `<div class="mastery-group"><div class="mastery-app">${a} · ${esc(APP[a])}</div><div class="bar-list">${rowsS}</div></div>`;
+    }).join("");
     el.innerHTML = `<div class="screen"><button class="back-link" data-go="dashboard">← Dashboard</button>
-      <div class="panel"><div class="section-header">🔥 Streak</div>
+      <div class="panel"><div class="section-header">🔥 Streak & Coverage</div>
         <div class="streak-row">
-          <div class="streak-box"><div class="streak-number">${state.streak.current}</div><div class="streak-label">Current (days)</div></div>
+          <div class="streak-box"><div class="streak-number">${state.streak.current}</div><div class="streak-label">Streak (days)</div></div>
           <div class="streak-box"><div class="streak-number">${state.streak.best}</div><div class="streak-label">Best</div></div>
-          <div class="streak-box"><div class="streak-number">${state.seen.size}</div><div class="streak-label">Attempted</div></div>
-        </div></div>
+          <div class="streak-box"><div class="streak-number">${state.seen.size}</div><div class="streak-label">Q covered</div></div>
+          <div class="streak-box"><div class="streak-number">${skillsStarted}/${skillIds.length}</div><div class="streak-label">Skills started</div></div>
+        </div>
+        <div class="cat-progress-track" style="margin-top:14px"><div class="cat-progress-fill" style="width:${Q.length ? state.seen.size / Q.length * 100 : 0}%"></div></div>
+        <div class="progress-meta" style="margin-top:8px;margin-bottom:0"><span>Total syllabus coverage</span><span>${state.seen.size} / ${Q.length} questions</span></div>
+      </div>
       <div class="panel"><div class="section-header">📊 Accuracy by Appendix</div><div class="bar-list">${rows}</div></div>
+      <div class="panel"><div class="section-header">🎯 Syllabus Mastery — all ${skillIds.length} skill areas</div>
+        <p class="cat-count" style="margin-bottom:14px">Bar = how much of each skill area you've covered; number = questions seen and your accuracy. Green ≥70%, amber ≥50%, red below.</p>
+        ${mastery}</div>
       <div class="panel"><div class="section-header">🕒 Recent Tests</div>${hist ? `<div class="bar-list">${hist}</div>` : `<p class="empty-note">No tests completed yet.</p>`}</div>
     </div>`;
     el.querySelector("[data-go]").addEventListener("click", () => go("dashboard"));
