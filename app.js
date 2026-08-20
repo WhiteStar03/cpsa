@@ -7,6 +7,9 @@
   const SKILL = DATA.skills;     // {A1:"Engagement...", ...}
   const APP_ORDER = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
   const APP_ICON = { A: "📋", B: "🧰", C: "🔎", D: "🌐", E: "🪟", F: "🐧", G: "🕸️", H: "🧪", I: "🎯", J: "🗄️" };
+  const NOTES = window.QUIZ_NOTES || {};          // { A: {title, skills: { A1: {summary,facts,tables,pitfalls,tools,sources} } } }
+  const hasNotes = Object.keys(NOTES).length > 0;
+  const noteFor = skill => (NOTES[skill[0]] && NOTES[skill[0]].skills) ? NOTES[skill[0]].skills[skill] : null;
 
   const el = document.getElementById("app");
   const LS = {
@@ -88,6 +91,7 @@
           <button class="action-card tertiary" data-go="custom"><span class="action-icon">⚙️</span><div class="action-content"><h3>Custom Test</h3><p>Pick topics & length</p></div><span class="action-arrow">→</span></button>
           <button class="action-card stats" data-go="stats"><span class="action-icon">📈</span><div class="action-content"><h3>Statistics</h3><p>Streak, history, weak areas</p></div><span class="action-arrow">→</span></button>
         </div>
+        ${hasNotes ? `<button class="action-card notes" data-go="notes" style="margin-top:14px;width:100%"><span class="action-icon">📖</span><div class="action-content"><h3>Study Notes</h3><p>Revision handbook — the full CPSA curriculum, one page per skill area with key facts and tables</p></div><span class="action-arrow">→</span></button>` : ""}
         <button class="action-card exam" data-go="exam" style="margin-top:14px;width:100%"><span class="action-icon">⏱️</span><div class="action-content"><h3>Exam Simulation</h3><p>Timed mock — mirrors the real 2-hour CPSA paper, feedback at the end</p></div><span class="action-arrow">→</span></button>
       </div>
       ${state.flagged.size ? `<div class="panel"><div class="section-header">🚩 Flagged</div>
@@ -140,6 +144,70 @@
       const s = b.dataset.skill;
       startQuiz(shuffle(Q.filter(q => q.skill === s)).map(q => q.id), `${s} · ${SKILL[s] || s}`, { study: true });
     }));
+  };
+
+  /* ================= STUDY NOTES (handbook) ================= */
+  routes.notes = function () {
+    const cards = APP_ORDER.filter(a => NOTES[a] && NOTES[a].skills).map(a => {
+      const skills = Object.keys(NOTES[a].skills);
+      return `<button class="category-card" data-noteapp="${a}">
+        <div class="cat-head"><span class="cat-badge">${a}</span><span class="cat-title">${esc(APP[a])}</span></div>
+        <div class="cat-count">${skills.length} skill area${skills.length > 1 ? "s" : ""} documented</div>
+        <div class="cat-skill-list">${skills.slice(0, 8).map(s => `<span class="skill-pill">${s}</span>`).join("")}${skills.length > 8 ? `<span class="skill-pill">+${skills.length - 8}</span>` : ""}</div>
+      </button>`;
+    }).join("");
+    el.innerHTML = `<div class="screen"><button class="back-link" data-go="dashboard">← Dashboard</button>
+      <div class="panel"><div class="section-header">📖 Study Notes — CPSA Handbook</div>
+      <p class="cat-count" style="margin-bottom:16px">Concise, fact-based revision notes for every skill area of the CREST CPSA syllabus (v2.5 / combined CRT-CPSA v2.4). Pick an appendix.</p>
+      <div class="category-grid">${cards}</div></div></div>`;
+    el.querySelector(".back-link").addEventListener("click", () => go("dashboard"));
+    el.querySelectorAll("[data-noteapp]").forEach(b => b.addEventListener("click", () => go("noteAppendix", b.dataset.noteapp)));
+  };
+
+  routes.noteAppendix = function (a) {
+    const skills = Object.keys(NOTES[a].skills).sort((x, y) => x.localeCompare(y, undefined, { numeric: true }));
+    const rows = skills.map(s => {
+      const n = NOTES[a].skills[s];
+      return `<button class="category-card" data-noteskill="${s}">
+        <div class="cat-head"><span class="cat-badge">${s}</span><span class="cat-title">${esc(n.title || SKILL[s] || s)}</span></div>
+        <div class="cat-count">${esc((n.summary || "").slice(0, 110))}${(n.summary || "").length > 110 ? "…" : ""}</div>
+      </button>`;
+    }).join("");
+    el.innerHTML = `<div class="screen"><button class="back-link" data-back>← All notes</button>
+      <div class="panel"><div class="section-header">${APP_ICON[a]} Appendix ${a} — ${esc(APP[a])}</div>
+      <div class="category-grid">${rows}</div></div></div>`;
+    el.querySelector("[data-back]").addEventListener("click", () => go("notes"));
+    el.querySelectorAll("[data-noteskill]").forEach(b => b.addEventListener("click", () => go("noteSkill", b.dataset.noteskill)));
+  };
+
+  routes.noteSkill = function (skill) {
+    const a = skill[0], n = NOTES[a].skills[skill];
+    const qCount = Q.filter(q => q.skill === skill).length;
+    const facts = (n.facts || []).map(f => `<li>${esc(f)}</li>`).join("");
+    const tables = (n.tables || []).map(t => `
+      <div class="note-table-title">${esc(t.title || "")}</div>
+      <div class="note-table-wrap"><table class="note-table">
+        <thead><tr>${(t.cols || []).map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead>
+        <tbody>${(t.rows || []).map(r => `<tr>${r.map(c => `<td>${esc(String(c))}</td>`).join("")}</tr>`).join("")}</tbody>
+      </table></div>`).join("");
+    const pitfalls = (n.pitfalls && n.pitfalls.length) ? `<div class="note-sub">⚠️ Common traps</div><ul class="note-facts">${n.pitfalls.map(p => `<li>${esc(p)}</li>`).join("")}</ul>` : "";
+    const tools = (n.tools && n.tools.length) ? `<div class="note-sub">🛠️ Tools</div><div class="cat-skill-list">${n.tools.map(t => `<span class="skill-pill">${esc(t)}</span>`).join("")}</div>` : "";
+    const sources = (n.sources && n.sources.length) ? `<div class="note-sub">🔗 Sources</div><ul class="note-sources">${n.sources.map(s => `<li><a href="${esc(s)}" target="_blank" rel="noopener noreferrer">${esc(s.replace(/^https?:\/\//, "").slice(0, 60))}</a></li>`).join("")}</ul>` : "";
+    el.innerHTML = `<div class="screen"><button class="back-link" data-back>← Appendix ${a}</button>
+      <div class="panel">
+        <div class="question-header"><span class="question-number">${skill} · ${esc(n.title || SKILL[skill] || "")}</span></div>
+        <p class="note-summary">${esc(n.summary || "")}</p>
+        <div class="note-sub">Key facts</div>
+        <ul class="note-facts">${facts}</ul>
+        ${tables}
+        ${pitfalls}
+        ${tools}
+        ${sources}
+        ${qCount ? `<div class="navigation" style="margin-top:20px"><button class="nav-button" id="practiceSkill">Practice ${qCount} question${qCount > 1 ? "s" : ""} on ${skill} →</button></div>` : ""}
+      </div></div>`;
+    el.querySelector("[data-back]").addEventListener("click", () => go("noteAppendix", a));
+    const pb = el.querySelector("#practiceSkill");
+    if (pb) pb.addEventListener("click", () => startQuiz(shuffle(Q.filter(q => q.skill === skill)).map(q => q.id), `${skill} · ${SKILL[skill] || skill}`, { study: true }));
   };
 
   /* ================= RANDOM ================= */
