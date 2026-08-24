@@ -404,7 +404,7 @@
       <div class="section-header" style="text-align:center">${quiz.study ? "Study session complete" : "Test complete"} — ${esc(quiz.label)}</div>
       <div class="score-circle">
         <svg width="180" height="180"><defs><linearGradient id="scoreGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--accent)"/></linearGradient></defs>
+          <stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--accent-2)"/></linearGradient></defs>
           <circle class="score-circle-bg" cx="90" cy="90" r="${R}"/>
           <circle class="score-circle-progress" cx="90" cy="90" r="${R}" stroke-dasharray="${C}" stroke-dashoffset="${C}" id="ring"/>
         </svg>
