@@ -331,7 +331,10 @@
             return `<button class="${cls}" data-opt="${k}"><span class="option-letter">${String.fromCharCode(65 + k)}</span><span class="option-text">${esc(o)}</span></button>`;
           }).join("")}
         </div>
-        ${reveal ? `<div class="explain-box"><span class="explain-verdict ${chosen === q.answer ? "ok" : "no"}">${chosen === q.answer ? "Correct" : "Not quite"}</span> — the answer is <strong>${esc(q.answer)}</strong>.${q.explanation ? ` <span class="explain-why">${esc(q.explanation)}</span>` : ""}</div>` : ""}
+        ${reveal ? `<div class="explain-box"><span class="explain-verdict ${chosen === q.answer ? "ok" : "no"}">${chosen === q.answer ? "Correct" : "Not quite"}</span> — the answer is <strong>${esc(q.answer)}</strong>.${q.explanation ? ` <span class="explain-why">${esc(q.explanation)}</span>` : ""}${(q.ansNote || (q.incNotes && q.incNotes.length)) ? `<div class="opt-breakdown"><div class="ob-title">Every option explained</div>
+          <div class="ob correct"><span class="ob-mark">✓</span><span><strong>${esc(q.answer)}</strong>${q.ansNote ? ` — ${esc(q.ansNote)}` : ""}</span></div>
+          ${q.incorrect.map((inc, k) => `<div class="ob wrong"><span class="ob-mark">✗</span><span><strong>${esc(inc)}</strong>${(q.incNotes && q.incNotes[k]) ? ` — ${esc(q.incNotes[k])}` : ""}</span></div>`).join("")}
+        </div>` : ""}</div>` : ""}
         <div class="navigation">
           <button class="nav-button secondary" id="prevBtn" ${i === 0 ? "disabled" : ""}>← Previous</button>
           <button class="nav-button" id="nextBtn">${lastQ ? (defer ? "Submit exam ✓" : "Finish ✓") : "Next →"}</button>

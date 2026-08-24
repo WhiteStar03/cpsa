@@ -251,6 +251,13 @@ select:hover { border-color: var(--accent); }
 .explain-verdict.ok { color: var(--good); }
 .explain-verdict.no { color: var(--bad); }
 .explain-why { display: block; margin-top: 7px; color: var(--text-2); }
+.opt-breakdown { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 7px; }
+.ob-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); margin-bottom: 2px; }
+.ob { display: flex; gap: 9px; font-size: 13.5px; line-height: 1.5; color: var(--text-2); }
+.ob strong { color: var(--text); font-weight: 600; }
+.ob-mark { flex: 0 0 16px; font-weight: 800; }
+.ob.correct .ob-mark { color: var(--good); }
+.ob.wrong .ob-mark { color: var(--bad); }
 
 /* ===== buttons ===== */
 .navigation { display: flex; gap: 10px; flex-wrap: wrap; }
