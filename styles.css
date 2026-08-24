@@ -312,6 +312,12 @@ select:hover { border-color: var(--accent); }
 .mastery-group { margin-bottom: 16px; }
 .mastery-group:last-child { margin-bottom: 0; }
 .mastery-app { font-size: 11.5px; font-weight: 700; color: var(--accent-text); margin-bottom: 8px; letter-spacing: .02em; }
+.review-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 620px) { .review-actions { grid-template-columns: 1fr; } }
+.mistake-item { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md); padding: 13px 15px; margin-bottom: 10px; }
+.mistake-q { font-weight: 600; font-size: 14px; margin-bottom: 8px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.mistake-q .cat-badge { flex: 0 0 auto; }
+.mistake-why { font-size: 12.5px; color: var(--text-2); margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--border); line-height: 1.5; }
 
 /* study notes */
 .note-summary { font-size: 15px; color: var(--text-2); margin-bottom: 18px; line-height: 1.62; }

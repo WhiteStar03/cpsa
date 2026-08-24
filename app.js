@@ -24,12 +24,13 @@
     correct: new Set(LS.get("correct", [])),  // question ids answered correctly (latest)
     flagged: new Set(LS.get("flagged", [])),  // flagged for review
     history: LS.get("history", []),           // [{date, score, total, mode, label}]
-    streak: LS.get("streak", { current: 0, best: 0, last: null })
+    streak: LS.get("streak", { current: 0, best: 0, last: null }),
+    mistakes: LS.get("mistakes", {})          // { id: {choice, ts} } — questions last answered wrong
   };
   function persist() {
     LS.set("seen", [...state.seen]); LS.set("correct", [...state.correct]);
     LS.set("flagged", [...state.flagged]); LS.set("history", state.history);
-    LS.set("streak", state.streak);
+    LS.set("streak", state.streak); LS.set("mistakes", state.mistakes);
   }
 
   /* ---------- theme ---------- */
@@ -94,9 +95,11 @@
         ${hasNotes ? `<button class="action-card notes" data-go="notes" style="margin-top:14px;width:100%"><span class="action-icon">📖</span><div class="action-content"><h3>Study Notes</h3><p>Revision handbook — the full CPSA curriculum, one page per skill area with key facts and tables</p></div><span class="action-arrow">→</span></button>` : ""}
         <button class="action-card exam" data-go="exam" style="margin-top:14px;width:100%"><span class="action-icon">⏱️</span><div class="action-content"><h3>Exam Simulation</h3><p>Timed mock — mirrors the real 2-hour CPSA paper, feedback at the end</p></div><span class="action-arrow">→</span></button>
       </div>
-      ${state.flagged.size ? `<div class="panel"><div class="section-header">🚩 Flagged</div>
-        <p class="cat-count" style="margin-bottom:14px">You have ${state.flagged.size} flagged question${state.flagged.size > 1 ? "s" : ""} to review.</p>
-        <button class="nav-button" style="max-width:260px" data-go="flaggedTest">Review flagged →</button></div>` : ""}
+      ${(mistakeIds().length || state.flagged.size) ? `<div class="panel"><div class="section-header">🔁 Review & Retry</div>
+        <div class="review-actions">
+          ${mistakeIds().length ? `<button class="action-card secondary" data-go="mistakes"><span class="action-icon">❌</span><div class="action-content"><h3>My Mistakes</h3><p>${mistakeIds().length} wrong — review why, or retest just these</p></div><span class="action-arrow">→</span></button>` : ""}
+          ${state.flagged.size ? `<button class="action-card tertiary" data-go="flaggedTest"><span class="action-icon">🚩</span><div class="action-content"><h3>Flagged</h3><p>${state.flagged.size} flagged question${state.flagged.size > 1 ? "s" : ""} to review</p></div><span class="action-arrow">→</span></button>` : ""}
+        </div></div>` : ""}
     </div>`;
     el.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => go(b.dataset.go)));
   };
@@ -240,6 +243,44 @@
     startQuiz(shuffle(ids), "Flagged review");
   };
 
+  /* ================= MISTAKES (wrong-answer history + retry) ================= */
+  function mistakeIds() { return Object.keys(state.mistakes).map(Number).filter(id => Q[id]); }
+  routes.retryMistakes = function () {
+    const ids = mistakeIds();
+    if (!ids.length) return go("dashboard");
+    startQuiz(shuffle(ids), "Retrying mistakes", { study: true });
+  };
+  routes.mistakes = function () {
+    const ids = mistakeIds().sort((a, b) => (state.mistakes[b].ts || 0) - (state.mistakes[a].ts || 0));
+    if (!ids.length) { el.innerHTML = `<div class="screen"><button class="back-link" data-go="dashboard">← Dashboard</button><div class="panel"><div class="section-header">❌ My Mistakes</div><p class="empty-note">No mistakes recorded yet — get some questions wrong and they'll appear here so you can retest them.</p></div></div>`; el.querySelector("[data-go]").addEventListener("click", () => go("dashboard")); return; }
+    // group by appendix
+    const byApp = {};
+    ids.forEach(id => { const a = Q[id].skill[0]; (byApp[a] = byApp[a] || []).push(id); });
+    const list = APP_ORDER.filter(a => byApp[a]).map(a => {
+      const rows = byApp[a].map(id => {
+        const q = Q[id], chosen = state.mistakes[id].choice;
+        return `<div class="mistake-item">
+          <div class="mistake-q"><span class="cat-badge">${q.skill}</span> ${esc(q.question)}</div>
+          <div class="review-line wrong">✗ You chose: ${esc(chosen)}</div>
+          <div class="review-line correct">✓ Correct: ${esc(q.answer)}</div>
+          ${q.explanation ? `<div class="mistake-why">${esc(q.explanation)}</div>` : ""}
+        </div>`;
+      }).join("");
+      return `<div class="mastery-group"><div class="mastery-app">${a} · ${esc(APP[a])} (${byApp[a].length})</div>${rows}</div>`;
+    }).join("");
+    el.innerHTML = `<div class="screen"><button class="back-link" data-go="dashboard">← Dashboard</button>
+      <div class="panel"><div class="section-header">❌ My Mistakes — ${ids.length}</div>
+        <p class="cat-count" style="margin-bottom:14px">Questions you last answered incorrectly. Retest them (they leave this list once you get them right), or read why below.</p>
+        <div class="navigation"><button class="nav-button" id="retryAll">Retry all ${ids.length} mistakes →</button><button class="nav-button ghost" id="clearMistakes">Clear list</button></div>
+      </div>
+      <div class="panel"><div class="section-header">📋 Review — what went wrong</div>${list}</div>
+    </div>`;
+    el.querySelector("[data-go]").addEventListener("click", () => go("dashboard"));
+    el.querySelector("#retryAll").addEventListener("click", () => go("retryMistakes"));
+    el.querySelector("#clearMistakes").addEventListener("click", () =>
+      confirmModal("Clear your mistakes list? This only resets the mistakes tracker, not your overall progress.", () => { state.mistakes = {}; persist(); go("dashboard"); }));
+  };
+
   /* ================= CUSTOM ================= */
   routes.custom = function () {
     const sel = new Set(APP_ORDER);
@@ -352,7 +393,8 @@
       const choice = opts[+b.dataset.opt];
       quiz.answers[id] = choice;
       state.seen.add(id);
-      if (choice === q.answer) state.correct.add(id); else state.correct.delete(id);
+      if (choice === q.answer) { state.correct.add(id); delete state.mistakes[id]; }
+      else { state.correct.delete(id); state.mistakes[id] = { choice: choice, ts: Date.now() }; }
       persist();
       if (defer && !lastQ) { quiz.i++; renderQuestion(); }     // exam mode auto-advances
       else renderQuestion();
@@ -508,8 +550,8 @@
 
   document.getElementById("resetProgress").addEventListener("click", () =>
     confirmModal("Reset ALL progress, flags, history and streak? This cannot be undone.", () => {
-      ["seen", "correct", "flagged", "history", "streak"].forEach(k => LS.del(k));
-      state.seen = new Set(); state.correct = new Set(); state.flagged = new Set(); state.history = []; state.streak = { current: 0, best: 0, last: null };
+      ["seen", "correct", "flagged", "history", "streak", "mistakes"].forEach(k => LS.del(k));
+      state.seen = new Set(); state.correct = new Set(); state.flagged = new Set(); state.history = []; state.streak = { current: 0, best: 0, last: null }; state.mistakes = {};
       go("dashboard");
     }));
 
